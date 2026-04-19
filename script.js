@@ -139,6 +139,7 @@ if (
 
 const messageForm = document.getElementById("message-form");
 const formStatus = document.getElementById("form-status");
+const senderEmailInput = document.getElementById("sender-email");
 
 if (messageForm) {
   messageForm.addEventListener("submit", async (event) => {
@@ -146,6 +147,11 @@ if (messageForm) {
 
     const submitButton = messageForm.querySelector('button[type="submit"]');
     const formData = new FormData(messageForm);
+
+    // Help recipients reply directly to the sender address.
+    if (senderEmailInput && senderEmailInput.value.trim()) {
+      formData.set("replyto", senderEmailInput.value.trim());
+    }
 
     if (submitButton) {
       submitButton.disabled = true;
@@ -166,7 +172,12 @@ if (messageForm) {
         },
       });
 
-      const result = await response.json();
+      let result = {};
+      try {
+        result = await response.json();
+      } catch (parseError) {
+        result = {};
+      }
 
       if (response.ok && result.success) {
         messageForm.reset();
@@ -175,11 +186,12 @@ if (messageForm) {
           formStatus.classList.add("status-success");
         }
       } else {
-        throw new Error(result.message || "Failed to send message.");
+        throw new Error(result.message || "Failed to send message from Web3Forms.");
       }
     } catch (error) {
+      console.error("Web3Forms submission error:", error);
       if (formStatus) {
-        formStatus.textContent = "Message failed. Please try again.";
+        formStatus.textContent = `Message failed: ${error.message || "Please try again."}`;
         formStatus.classList.add("status-error");
       }
     } finally {
